@@ -2,13 +2,324 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SatoshiKishimoto.github.io</title>
-  <meta http-equiv="refresh" content="0;url=https://satoshikishimoto.github.io/solae-game-gate/" />
-  <link rel="canonical" href="https://satoshikishimoto.github.io/solae-game-gate/" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Solae Games</title>
+  <meta name="description" content="Solae公式ミニゲーム集。広告表示後にゲームを開始できます。" />
+
+  <style>
+    :root{--bg:#0b0f1a;--card:#121a2b;--text:#fff;--muted:#aab3d6;--blue:#2563eb;--line:rgba(255,255,255,.10)}
+    body{margin:0;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{width:min(960px,92vw);margin:0 auto;padding:18px 0 48px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 16px}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+    .logo{height:34px;display:block;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+    .title{font-weight:1000;letter-spacing:.3px}
+    .lang{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:999px;padding:6px}
+    .chip{border:0;border-radius:999px;padding:6px 10px;font-weight:900;cursor:pointer;background:transparent;color:var(--muted)}
+    .chip.on{background:rgba(255,255,255,.10);color:#fff}
+    .sub{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 14px}
+
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    @media (max-width:720px){.grid{grid-template-columns:1fr}}
+
+    .card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 16px 40px rgba(0,0,0,.28);display:flex;gap:12px}
+    .thumb{width:120px;min-width:120px;height:78px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--line);object-fit:cover}
+    .cbody{flex:1;min-width:0}
+    .ctitle{font-weight:1000;margin:0 0 6px}
+    .cdesc{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 10px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{border:0;border-radius:14px;padding:10px 12px;font-weight:1000;cursor:pointer}
+    .btn.primary{background:linear-gradient(180deg,#3b82f6,var(--blue));color:#fff}
+    .btn.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.12)}
+    .tag{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 9px;background:rgba(255,255,255,.04)}
+
+    .panel{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:12px}
+    .err{color:#ff5c5c;font-weight:900;white-space:pre-line;font-size:13px}
+    .foot{margin-top:16px;color:var(--muted);font-size:12px;line-height:1.6}
+    a{color:inherit}
+  </style>
 </head>
+
 <body>
-  <p>移動します… <a href="https://satoshikishimoto.github.io/solae-game-gate/">こちら</a></p>
-  <script>location.replace("https://satoshikishimoto.github.io/solae-game-gate/");</script>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="https://solae.my.canva.site/" target="_blank" rel="noopener">
+        <img class="logo" src="https://lh3.googleusercontent.com/d/1ejao3rdNer6UppKTaAAFlC3ILTR0RcUP" alt="Solae">
+        <div>
+          <div class="title">Solae Games</div>
+          <div style="color:var(--muted);font-size:12px">Official mini games</div>
+        </div>
+      </a>
+
+      <div class="lang" aria-label="language">
+        <button class="chip" id="jaBtn">JA</button>
+        <button class="chip" id="enBtn">EN</button>
+      </div>
+    </div>
+
+    <p class="sub" id="subtitle">
+      遊ぶボタン →（広告ゲート）→ ゲーム開始 の流れです。<br>
+      ゲームの追加は「シートに1行追加」だけで反映できます。
+    </p>
+
+    <div id="grid" class="grid"></div>
+
+    <div class="panel" id="panel" style="display:none">
+      <div class="err" id="err"></div>
+    </div>
+
+    <div class="foot" id="foot">
+      ※広告はゲート側で表示します（ゲーム本体はシンプルに保ちます）。<br>
+      ※通信が遅い場合でも、一定時間で「開始」できるようにしてあります。
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ==========================
+  // ✅ ここだけ設定
+  // ==========================
+  const GATE_URL = "https://satoshikishimoto.github.io/solae-game-gate/";
+  const SHEET_CSV_URL = "PUT_YOUR_SHEET_CSV_URL_HERE"; // ←「ウェブに公開」したCSV URLに置換
+
+  // ==========================
+  // i18n
+  // ==========================
+  const i18n = {
+    ja: {
+      subtitle: "遊ぶボタン →（広告ゲート）→ ゲーム開始 の流れです。<br>ゲームの追加は「シートに1行追加」だけで反映できます。",
+      play: "▶ 遊ぶ（広告）",
+      open: "開く",
+      tags: "タグ",
+      loadFail: "ゲーム一覧の読み込みに失敗しました。\n・シートが「ウェブに公開」されているか\n・CSV URL を正しく貼ったか\n・列名が想定と違わないか（下の仕様参照）"
+    },
+    en: {
+      subtitle: "Play → (Ad Gate) → Start game.<br>You can add new games just by adding one row to the sheet.",
+      play: "▶ PLAY (AD)",
+      open: "Open",
+      tags: "Tags",
+      loadFail: "Failed to load the game list.\n- Is the sheet published to the web?\n- Did you set the correct CSV URL?\n- Are the column names correct?"
+    }
+  };
+
+  const grid = document.getElementById('grid');
+  const panel = document.getElementById('panel');
+  const errEl = document.getElementById('err');
+  const subtitle = document.getElementById('subtitle');
+  const jaBtn = document.getElementById('jaBtn');
+  const enBtn = document.getElementById('enBtn');
+
+  function getLang(){
+    const p = new URLSearchParams(location.search);
+    const q = (p.get('lang')||'').toLowerCase();
+    const saved = (localStorage.getItem('solae_lang')||'').toLowerCase();
+    const lang = (q==='en'||q==='ja') ? q : (saved==='en'||saved==='ja') ? saved : 'ja';
+    return lang;
+  }
+  function setLang(lang){
+    localStorage.setItem('solae_lang', lang);
+    applyLang(lang);
+    // URLも整える（共有しやすい）
+    const u = new URL(location.href);
+    u.searchParams.set('lang', lang);
+    history.replaceState(null, "", u.toString());
+  }
+  function applyLang(lang){
+    jaBtn.classList.toggle('on', lang==='ja');
+    enBtn.classList.toggle('on', lang==='en');
+    subtitle.innerHTML = i18n[lang].subtitle;
+    document.documentElement.lang = lang;
+  }
+
+  jaBtn.onclick = () => setLang('ja');
+  enBtn.onclick = () => setLang('en');
+
+  // ==========================
+  // CSV parse
+  // 想定列（ヘッダ）：
+  // title, url, desc, image, tags
+  // 追加（任意）：
+  // title_en, desc_en
+  // ==========================
+  function parseCSV(text){
+    // 簡易CSV（カンマ・ダブルクォート対応）
+    const rows = [];
+    let row = [], cur = "", inQ = false;
+    for (let i=0;i<text.length;i++){
+      const ch = text[i];
+      const next = text[i+1];
+      if (inQ){
+        if (ch === '"' && next === '"'){ cur += '"'; i++; }
+        else if (ch === '"'){ inQ = false; }
+        else { cur += ch; }
+      } else {
+        if (ch === '"'){ inQ = true; }
+        else if (ch === ','){ row.push(cur); cur=""; }
+        else if (ch === '\n'){ row.push(cur); rows.push(row); row=[]; cur=""; }
+        else if (ch === '\r'){ /* ignore */ }
+        else { cur += ch; }
+      }
+    }
+    row.push(cur); rows.push(row);
+    return rows;
+  }
+
+  function normalizeHeader(h){
+    return (h||"").toString().trim().toLowerCase()
+      .replace(/\s+/g,'')
+      .replace(/　/g,'')
+      .replace(/（.*?）/g,''); // 日本語括弧の注釈除去
+  }
+
+  function toAbsUrl(u){
+    const s = (u||"").toString().trim();
+    if (!s) return "";
+    if (s.startsWith("http://") || s.startsWith("https://")) return s;
+    // 相対パス（/games/8puzzle/ など）
+    if (s.startsWith("/")) return location.origin + s;
+    return location.origin + "/" + s;
+  }
+
+  function buildCard(game, lang){
+    const t = (lang==='en' && game.title_en) ? game.title_en : game.title;
+    const d = (lang==='en' && game.desc_en) ? game.desc_en : game.desc;
+
+    const card = document.createElement('div');
+    card.className = "card";
+
+    const img = document.createElement('img');
+    img.className = "thumb";
+    img.alt = t || "game";
+    img.src = game.image || "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="156">
+         <rect width="100%" height="100%" fill="rgba(255,255,255,0.06)"/>
+         <text x="50%" y="52%" text-anchor="middle" font-size="22" fill="rgba(255,255,255,0.55)" font-family="system-ui">Solae</text>
+       </svg>`
+    );
+
+    const body = document.createElement('div');
+    body.className = "cbody";
+
+    const h = document.createElement('div');
+    h.className = "ctitle";
+    h.textContent = t || "(no title)";
+
+    const p = document.createElement('p');
+    p.className = "cdesc";
+    p.textContent = d || "";
+
+    const row = document.createElement('div');
+    row.className = "row";
+
+    const play = document.createElement('button');
+    play.className = "btn primary";
+    play.textContent = i18n[lang].play;
+
+    // to= にゲームURLを入れてゲートへ
+    play.onclick = () => {
+      const dest = toAbsUrl(game.url);
+      const gate = new URL(GATE_URL);
+      gate.searchParams.set('to', dest);
+      gate.searchParams.set('lang', lang);
+      // “毎回広告を出す”ためにキャッシュ回避
+      gate.searchParams.set('v', Date.now().toString());
+      location.href = gate.toString();
+    };
+
+    const open = document.createElement('button');
+    open.className = "btn secondary";
+    open.textContent = i18n[lang].open;
+    open.onclick = () => window.open(toAbsUrl(game.url), "_blank", "noopener");
+
+    row.appendChild(play);
+    row.appendChild(open);
+
+    const tagsWrap = document.createElement('div');
+    tagsWrap.className = "row";
+    (game.tags||[]).slice(0,8).forEach(tg => {
+      const s = document.createElement('span');
+      s.className = "tag";
+      s.textContent = tg;
+      tagsWrap.appendChild(s);
+    });
+
+    body.appendChild(h);
+    body.appendChild(p);
+    body.appendChild(row);
+    if ((game.tags||[]).length) body.appendChild(tagsWrap);
+
+    card.appendChild(img);
+    card.appendChild(body);
+    return card;
+  }
+
+  async function load(){
+    const lang = getLang();
+    applyLang(lang);
+
+    if (!SHEET_CSV_URL || SHEET_CSV_URL.includes("PUT_YOUR")){
+      panel.style.display = "";
+      errEl.textContent = "SHEET_CSV_URL が未設定です。\nindex.html の SHEET_CSV_URL を、シートのCSV公開URLに置き換えてください。";
+      return;
+    }
+
+    try{
+      const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      const rows = parseCSV(text).filter(r => r.some(c => (c||"").trim()!==""));
+      if (rows.length < 2) throw new Error("CSV rows < 2");
+
+      const headers = rows[0].map(normalizeHeader);
+      const idx = (name) => headers.indexOf(name);
+
+      // 互換：日本語見出しでも動くように拾う
+      const pick = (hlist) => {
+        for (const h of hlist){
+          const i = idx(normalizeHeader(h));
+          if (i >= 0) return i;
+        }
+        return -1;
+      };
+
+      const I_TITLE = pick(["title","タイトル"]);
+      const I_URL   = pick(["url","URL"]);
+      const I_DESC  = pick(["desc","説明"]);
+      const I_IMG   = pick(["image","画像url","画像URL","サムネ","サムネイル"]);
+      const I_TAGS  = pick(["tags","タグ","タグ(カンマ区切り)"]);
+
+      const I_TITLE_EN = pick(["title_en","titleen","タイトルen"]);
+      const I_DESC_EN  = pick(["desc_en","descen","説明en"]);
+
+      if (I_TITLE < 0 || I_URL < 0){
+        throw new Error("Required columns missing: title/url");
+      }
+
+      const games = rows.slice(1).map(r => {
+        const tagsRaw = (I_TAGS>=0 ? (r[I_TAGS]||"") : "");
+        const tags = tagsRaw.split(",").map(s=>s.trim()).filter(Boolean);
+        return {
+          title: (r[I_TITLE]||"").trim(),
+          url: (r[I_URL]||"").trim(),
+          desc: (I_DESC>=0 ? (r[I_DESC]||"").trim() : ""),
+          image: (I_IMG>=0 ? (r[I_IMG]||"").trim() : ""),
+          tags,
+          title_en: (I_TITLE_EN>=0 ? (r[I_TITLE_EN]||"").trim() : ""),
+          desc_en: (I_DESC_EN>=0 ? (r[I_DESC_EN]||"").trim() : "")
+        };
+      }).filter(g => g.title && g.url);
+
+      grid.innerHTML = "";
+      games.forEach(g => grid.appendChild(buildCard(g, lang)));
+      panel.style.display = "none";
+    }catch(e){
+      panel.style.display = "";
+      errEl.textContent = i18n[getLang()].loadFail + "\n\n" + String(e);
+    }
+  }
+
+  load();
+})();
+</script>
 </body>
 </html>
